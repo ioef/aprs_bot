@@ -1,0 +1,12 @@
+[Unit]
+Description=APRS Bot Service
+After=direwolf.service
+
+[Service]
+ExecStart=/usr/bin/python3 /path/to/your/aprs_bot.py
+WorkingDirectory=/path/to/your
+Restart=always
+User=yourusername
+
+[Install]
+WantedBy=multi-user.target
