@@ -181,13 +181,12 @@ class APRSBot:
             logging.info(f"Parsing packet: {packet_str}")
             match = re.search(r":(\w+-\d+)\s+:(\w+)", packet_str)
             if match:
-                sender = callsign + '-' + str(ssid)
                 message = match.group(2).strip()
-                logging.info(f"Parsed message from {sender}: {message}")
-                return sender, message
+                logging.info(f"Parsed message from {callsign}-{ssid}: {message}")
+                return callsign, int(ssid), message
         except Exception as e:
             logging.error(f"Error parsing packet: {e}")
-        return None, None
+        return None, None, None
 
     def fetch_weather(self):
         # Fetch weather data from an online API (example: OpenWeatherMap)
@@ -220,46 +219,46 @@ class APRSBot:
             'sunset': s['sunset'].strftime('%H:%M:%S')
         }
 
-    def handle_message(self, sender, message):
+    def handle_message(self, callsign, ssid, message):
         """Handle different messages and respond accordingly."""
         if "WHEREMAI" in message.upper():
-            self.send_whereami(sender)
+            self.send_whereami(callsign, ssid)
         elif "ISS_LOCATION" in message.upper():
-            self.send_iss_location(sender)
+            self.send_iss_location(callsign, ssid)
         elif "SKGWEATHER" in message.upper():
-            self.send_weather_skg(sender)
+            self.send_weather_skg(callsign, ssid)
         elif "ECHO" in message.upper():
-            self.send_echo(sender)
+            self.send_echo(callsign, ssid)
         elif "SUNRISE" in message.upper():
             sun_times = self.get_sun_times("Thessaloniki")
-            self.send_packet(sender, 0, f":{sender} :Sunrise: {sun_times['sunrise']} Sunset: {sun_times['sunset']}".encode('utf-8'))
+            self.send_packet(callsign, ssid, f":{callsign}-{ssid} :Sunrise: {sun_times['sunrise']} Sunset: {sun_times['sunset']}".encode('utf-8'))
         elif "HELP" in message.upper():
-            self.send_help(sender)
+            self.send_help(callsign, ssid)
         elif "ack10" in message:
             logging.info(f"Received acknowledgement from {sender}")
         else:
-            logging.info(f"Unknown command received from {sender}: {message}")
+            logging.info(f"Unknown command received from {callsign}-{ssid}: {message}")
 
-    def send_whereami(self, sender):
+    def send_whereami(self, callsign, ssid):
         """Respond with dummy location data."""
         location = "Your location: 40.7128 N, 74.0060 W"
-        self.send_packet(sender, 0, f":{sender} {location} 73!".encode('utf-8'))
+        self.send_packet(callsign, ssid, f":{callsign}-{ssid} {location} 73!".encode('utf-8'))
 
-    def send_iss_location(self, sender):
+    def send_iss_location(self, callsign, ssid):
         """Respond with dummy ISS location data."""
         iss_location = "ISS location: 47.1234 N, -122.5678 W"
-        self.send_packet(sender, 0, f":{sender}:ISS Location: {iss_location}".encode('utf-8'))
+        self.send_packet(callsign, ssid, f":{callsign}-{ssid} ISS Location: {iss_location}".encode('utf-8'))
 
-    def send_weather_skg(self, sender):
+    def send_weather_skg(self, callsign, ssid):
         """Respond with dummy weather data for Thessaloniki."""
         weather_info = self.fetch_weather()
-        self.send_packet(sender, 0, f":{sender} :{weather_info}".encode('utf-8'))
+        self.send_packet(callsign, ssid, f":{callsign}-{ssid} :{weather_info}".encode('utf-8'))
 
-    def send_echo(self, sender):
+    def send_echo(self, callsign, ssid):
         """Respond with an OK message."""
-        self.send_packet(sender, 0, f":{sender}:OK".encode('utf-8'))
+        self.send_packet(callsign, ssid, f":{callsign}-{ssid}:OK".encode('utf-8'))
 
-    def send_help(self, sender):
+    def send_help(self, callsign, ssid):
         """
         Respond with a brief list of valid commands to the sender.
     
@@ -267,8 +266,8 @@ class APRSBot:
         sender (str): The call sign of the message sender.
         """
         help_message = "Cmds: WHEREAMI, ISS_LOC, SKGWEATHER, ECHO <msg>, HELP"
-        logging.info(f"Sending help to {sender}")
-        self.send_packet(sender, 0, f":{sender} :Cmds WHEREAMI, ISS_LOC, SKGWEATHER, ECHO <msg>, HELP".encode('utf-8'))
+        logging.info(f"Sending help to {callsign}-{ssid}")
+        self.send_packet(sender, 0, f":{callsign}-{ssid} :Cmds WHEREAMI, ISS_LOC, SKGWEATHER, ECHO <msg>, HELP".encode('utf-8'))
 
     def run(self):
         """Connect and start listening for packets."""
@@ -280,10 +279,10 @@ class APRSBot:
         while True:
             packet = self.receive_packet()
             if packet:
-                sender, message = self.parse_packet(packet)
-                if sender and message:
+                callsign, ssid, message = self.parse_packet(packet)
+                if callsign and message:
                     time.sleep(3)
-                    self.handle_message(sender, message)
+                    self.handle_message(callsign, ssid, message)
             time.sleep(1)  # Pause before checking for the next packet
 
 
