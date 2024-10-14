@@ -5,7 +5,8 @@ import re
 import requests
 from datetime import datetime
 from constants import KISS_FEND, KISS_PORT, KISS_DATA_FRAME, API_KEY, CALLSIGN, SSID
-
+from astral import LocationInfo
+from astral.sun import sun
 
 # Configure logging
 logging.basicConfig(filename='aprs_bot.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -204,6 +205,20 @@ class APRSBot:
             logging.error(f"Error fetching weather data: {e}")
             return None
 
+    def get_sun_times(self, city_name):
+        """
+        Get sunrise and sunset times for a given city.
+        Args:
+            city_name (str): The name of the city.
+        Returns:
+            dict: A dictionary with sunrise and sunset times.
+        """
+        city = LocationInfo(city_name)
+        s = sun(city.observer, date=datetime.now())
+        return {
+            'sunrise': s['sunrise'].strftime('%H:%M:%S'),
+            'sunset': s['sunset'].strftime('%H:%M:%S')
+        }
 
     def handle_message(self, sender, message):
         """Handle different messages and respond accordingly."""
@@ -215,6 +230,9 @@ class APRSBot:
             self.send_weather_skg(sender)
         elif "ECHO" in message.upper():
             self.send_echo(sender)
+        elif "SUNMOON" in message.upper():
+            sun_times = self.get_sun_times("Thessaloniki")
+            self.send_packet(sender, 0, f":{sender} :Sunrise: {sun_times['sunrise']} Sunset: {sun_times['sunset']}".encode('utf-8'))
         elif "HELP" in message.upper():
             self.send_help(sender)
         elif "ack10" in message:
