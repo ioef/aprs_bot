@@ -230,7 +230,7 @@ class APRSBot:
             self.send_weather_skg(sender)
         elif "ECHO" in message.upper():
             self.send_echo(sender)
-        elif "SUNMOON" in message.upper():
+        elif "SUNRISE" in message.upper():
             sun_times = self.get_sun_times("Thessaloniki")
             self.send_packet(sender, 0, f":{sender} :Sunrise: {sun_times['sunrise']} Sunset: {sun_times['sunset']}".encode('utf-8'))
         elif "HELP" in message.upper():
