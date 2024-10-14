@@ -76,7 +76,7 @@ class APRSBot:
         Returns:
             bytearray: The constructed KISS frame.
         """
-        dest_address = self.create_ax25_address(dest_call, 8)
+        dest_address = self.create_ax25_address(dest_call, dest_ssid)
         src_address = self.create_ax25_address(src_call, src_ssid)
 
         digi_addresses = []
