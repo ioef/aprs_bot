@@ -235,7 +235,7 @@ class APRSBot:
     def send_weather_skg(self, sender):
         """Respond with dummy weather data for Thessaloniki."""
         weather_info = self.fetch_weather()
-        self.send_packet(sender, 0, f":{sender} :SKG Weather {weather_info}".encode('utf-8'))
+        self.send_packet(sender, 0, f":{sender} :{weather_info}".encode('utf-8'))
 
     def send_echo(self, sender):
         """Respond with an OK message."""
