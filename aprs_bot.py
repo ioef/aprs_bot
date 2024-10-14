@@ -235,7 +235,7 @@ class APRSBot:
         elif "HELP" in message.upper():
             self.send_help(callsign, ssid)
         elif "ack10" in message:
-            logging.info(f"Received acknowledgement from {sender}")
+            logging.info(f"Received acknowledgement from {callsign}-{ssid}")
         else:
             logging.info(f"Unknown command received from {callsign}-{ssid}: {message}")
 
@@ -267,7 +267,7 @@ class APRSBot:
         """
         help_message = "Cmds: WHEREAMI, ISS_LOC, SKGWEATHER, ECHO <msg>, HELP"
         logging.info(f"Sending help to {callsign}-{ssid}")
-        self.send_packet(sender, 0, f":{callsign}-{ssid} :Cmds WHEREAMI, ISS_LOC, SKGWEATHER, ECHO <msg>, HELP".encode('utf-8'))
+        self.send_packet(callsign, ssid, f":{callsign}-{ssid} :Cmds WHEREAMI, ISS_LOC, SKGWEATHER, ECHO <msg>, HELP".encode('utf-8'))
 
     def run(self):
         """Connect and start listening for packets."""
