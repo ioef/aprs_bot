@@ -4,12 +4,12 @@ import time
 import re
 import requests
 from datetime import datetime
-from constants import KISS_FEND, KISS_PORT, KISS_DATA_FRAME, API_KEY, CALLSIGN,        SSID
+from constants import KISS_FEND, KISS_PORT, KISS_DATA_FRAME, API_KEY, CALLSIGN, SSID
 from astral import LocationInfo
 from astral.sun import sun
 
 # Configure logging
-logging.basicConfig(filename='aprs_bot.log', level=logging.DEBUG, format='%(asct       ime)s - %(levelname)s - %(message)s')
+logging.basicConfig(filename='aprs_bot.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class APRSBot:
     def __init__(self, src_call, src_ssid, port=KISS_PORT):
@@ -28,7 +28,7 @@ class APRSBot:
         Returns:
             bytearray: The AX.25 address bytes.
         """
-        call_sign = call_sign.upper().ljust(6)[:6]  # Normalize and pad call sig       n to 6 characters
+        call_sign = call_sign.upper().ljust(6)[:6]  # Normalize and pad call sign to 6 characters
         call_sign_bytes = bytearray(call_sign.encode('ascii'))
         ssid_byte = (ssid << 1) | 0x60
         if last:
@@ -39,7 +39,7 @@ class APRSBot:
             address.append(byte << 1)
         address.append(ssid_byte)
 
-        logging.debug(f'Created AX.25 address: {call_sign} with SSID {ssid} => {       address.hex()}')
+        logging.debug(f'Created AX.25 address: {call_sign} with SSID {ssid} => {address.hex()}')
         return address
 
     def validate_ax25_frame(self, kiss_frame):
@@ -61,7 +61,7 @@ class APRSBot:
         logging.info('Frame is valid AX.25.')
         return True
 
-    def build_kiss_frame(self, src_call, src_ssid, dest_call, dest_ssid, digi_ca       lls, aprs_payload):
+    def build_kiss_frame(self, src_call, src_ssid, dest_call, dest_ssid, digi_calls, aprs_payload):
         """
         Build a KISS frame for an AX.25 packet.
 
@@ -82,10 +82,10 @@ class APRSBot:
         digi_addresses = []
         for i, (digi_call, digi_ssid) in enumerate(digi_calls):
             last = (i == len(digi_calls) - 1)
-            digi_addresses.append(self.create_ax25_address(digi_call, digi_ssid,        last))
+            digi_addresses.append(self.create_ax25_address(digi_call, digi_ssid, last))
 
         kiss_frame = bytearray([KISS_FEND])  # Start with Frame delimiter
-        kiss_frame.append(KISS_DATA_FRAME)   # Append KISS command/data frame by       te
+        kiss_frame.append(KISS_DATA_FRAME)   # Append KISS command/data frame byte
         kiss_frame.extend(dest_address)      # Append Destination Address
         kiss_frame.extend(src_address)       # Append Source Address
         for addr in digi_addresses:
@@ -112,8 +112,8 @@ class APRSBot:
             dest_ssid (int): Destination SSID.
             aprs_payload (bytes): Payload for the APRS message.
         """
-        digi_calls = [("WIDE1", 1), ("WIDE2", 2)]  # List of digipeater callsign       s and ssids
-        kiss_frame = self.build_kiss_frame(self.src_call, self.src_ssid, dest_ca       ll, dest_ssid, digi_calls, aprs_payload)
+        digi_calls = [("WIDE1", 1), ("WIDE2", 2)]  # List of digipeater callsigns and ssids
+        kiss_frame = self.build_kiss_frame(self.src_call, self.src_ssid, dest_call, dest_ssid, digi_calls, aprs_payload)
         if kiss_frame is None:
             return
 
@@ -154,7 +154,7 @@ class APRSBot:
         tuple: (callsign, ssid) as a string and an integer.
         """
         callsign_bytes = bytearray([byte >> 1 for byte in encoded_bytes[:6]])
-        callsign = callsign_bytes.decode('ascii').strip()  # Remove padding spac       es
+        callsign = callsign_bytes.decode('ascii').strip()  # Remove padding spaces
 
         # Decode the SSID (stored in the last byte, after the callsign)
         ssid = (encoded_bytes[6] >> 1) & 0x0F  # Extract SSID (bits 1-4)
@@ -183,7 +183,7 @@ class APRSBot:
             match = re.search(r":([^:]+)$", packet_str)
             if match:
                 message = match.group(1).strip()
-                logging.info(f"Parsed message from {callsign}-{ssid}: {message}"       )
+                logging.info(f"Parsed message from {callsign}-{ssid}: {message}")
                 return callsign, int(ssid), message
         except Exception as e:
             logging.error(f"Error parsing packet: {e}")
@@ -191,14 +191,14 @@ class APRSBot:
 
     def fetch_weather(self, CITY='Thessaloniki'):
         # Fetch weather data from an online API (example: OpenWeatherMap)
-        url = f"http://api.openweathermap.org/data/2.5/weather?q={CITY}&appid={A       PI_KEY}&units=metric"
+        url = f"http://api.openweathermap.org/data/2.5/weather?q={CITY}&appid={API_KEY}&units=metric"
         try:
             response = requests.get(url)
             weather_data = response.json()
             if weather_data.get("cod") != 200:
-                logging.error(f"Failed to fetch weather data: {weather_data.get(       'message')}")
+                logging.error(f"Failed to fetch weather data: {weather_data.get('message')}")
                 return None
-            weather_info = f"Weather in {CITY}: {weather_data['main']['temp']}°C       , {weather_data['weather'][0]['description']}"
+            weather_info = f"Weather in {CITY}: {weather_data['main']['temp']}°C, {weather_data['weather'][0]['description']}"
             return weather_info
         except Exception as e:
             logging.error(f"Error fetching weather data: {e}")
@@ -234,37 +234,37 @@ class APRSBot:
             self.send_echo(callsign, ssid)
         elif "SUNRISE" in message.upper():
             sun_times = self.get_sun_times("Thessaloniki")
-            self.send_packet(callsign, ssid, f":{callsign}-{ssid} :Sunrise: {sun       _times['sunrise']} Sunset: {sun_times['sunset']}".encode('utf-8'))
+            self.send_packet(callsign, ssid, f":{callsign}-{ssid} :Sunrise: {sun_times['sunrise']} Sunset: {sun_times['sunset']}".encode('utf-8'))
         elif "HELP" in message.upper():
             self.send_help(callsign, ssid)
         elif "ack10" in message:
             logging.info(f"Received acknowledgement from {callsign}-{ssid}")
         else:
-            logging.info(f"Unknown command received from {callsign}-{ssid}: {mes       sage}")
+            logging.info(f"Unknown command received from {callsign}-{ssid}: {message}")
 
     def send_whereami(self, callsign, ssid):
         """Respond with dummy location data."""
         location = "Your location: 40.7128 N, 74.0060 W"
-        self.send_packet(callsign, ssid, f":{callsign}-{ssid} {location} 73!".en       code('utf-8'))
+        self.send_packet(callsign, ssid, f":{callsign}-{ssid} {location} 73!".encode('utf-8'))
 
     def send_iss_location(self, callsign, ssid):
         """Respond with dummy ISS location data."""
         iss_location = "ISS location: 47.1234 N, -122.5678 W"
-        self.send_packet(callsign, ssid, f":{callsign}-{ssid} ISS Location: {iss       _location}".encode('utf-8'))
+        self.send_packet(callsign, ssid, f":{callsign}-{ssid} ISS Location: {iss_location}".encode('utf-8'))
 
     def send_weather_skg(self, callsign, ssid):
         """Respond with dummy weather data for Thessaloniki."""
         weather_info = self.fetch_weather()
-        self.send_packet(callsign, ssid, f":{callsign}-{ssid} :{weather_info}".e       ncode('utf-8'))
+        self.send_packet(callsign, ssid, f":{callsign}-{ssid} :{weather_info}".encode('utf-8'))
 
     def send_weather_generic(self, callsign, ssid, city):
         """Respond with dummy weather data for Thessaloniki."""
         weather_info = self.fetch_weather(city)
-        self.send_packet(callsign, ssid, f":{callsign}-{ssid} :{weather_info}".e       ncode('utf-8'))
+        self.send_packet(callsign, ssid, f":{callsign}-{ssid} :{weather_info}".encode('utf-8'))
 
     def send_echo(self, callsign, ssid):
         """Respond with an OK message."""
-        self.send_packet(callsign, ssid, f":{callsign}-{ssid}:OK".encode('utf-8'       ))
+        self.send_packet(callsign, ssid, f":{callsign}-{ssid}:OK".encode('utf-8'))
 
     def send_help(self, callsign, ssid):
         """
@@ -275,7 +275,7 @@ class APRSBot:
         """
         help_message = "Cmds: WHEREAMI, ISS_LOC, SKGWEATHER, ECHO <msg>, HELP"
         logging.info(f"Sending help to {callsign}-{ssid}")
-        self.send_packet(callsign, ssid, f":{callsign}-{ssid} :Cmds WHEREAMI, IS       S_LOC, SKGWEATHER, ECHO <msg>, HELP".encode('utf-8'))
+        self.send_packet(callsign, ssid, f":{callsign}-{ssid} :Cmds WHEREAMI, ISS_LOC, SKGWEATHER, ECHO <msg>, HELP".encode('utf-8'))
 
     def run(self):
         """Connect and start listening for packets."""
