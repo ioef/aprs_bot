@@ -103,7 +103,7 @@ class APRSBot:
             return None
 
         return kiss_frame
-
+    
     def send_packet(self, dest_call, dest_ssid, aprs_payload):
         """
         Send the constructed KISS frame to the Direwolf KISS TCP interface.
@@ -229,6 +229,7 @@ class APRSBot:
             self.send_weather_skg(callsign, ssid)
         elif "WEATHER?" in message.upper():
             city = message.split('?')[1].split()[0]
+            city = re.sub(r"\{\d+", "", city)
             self.send_weather_generic(callsign, ssid, city)
         elif "ECHO" in message.upper():
             self.send_echo(callsign, ssid)
@@ -261,7 +262,7 @@ class APRSBot:
         """Respond with dummy weather data for Thessaloniki."""
         weather_info = self.fetch_weather(city)
         self.send_packet(callsign, ssid, f":{callsign}-{ssid} :{weather_info}".encode('utf-8'))
-
+    
     def send_echo(self, callsign, ssid):
         """Respond with an OK message."""
         self.send_packet(callsign, ssid, f":{callsign}-{ssid}:OK".encode('utf-8'))
@@ -269,7 +270,7 @@ class APRSBot:
     def send_help(self, callsign, ssid):
         """
         Respond with a brief list of valid commands to the sender.
-
+    
         Args:
         sender (str): The call sign of the message sender.
         """
@@ -288,6 +289,13 @@ class APRSBot:
             packet = self.receive_packet()
             if packet:
                 callsign, ssid, message = self.parse_packet(packet)
+                own_call = self.src_call + '-' + str(self.src_ssid)
+                check_call = callsign
+                if ssid is not None:
+                    check_call += '-'
+                    check_call += str(ssid)
+                if check_call  == own_call:
+                        continue
                 if callsign and message:
                     time.sleep(3)
                     self.handle_message(callsign, ssid, message)
