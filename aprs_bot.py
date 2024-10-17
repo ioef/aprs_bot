@@ -273,7 +273,7 @@ class APRSBot:
         match = re.search(r'\{(\d+)\s*$', message)  # Match any { followed by digits at the end
         if match:
             ack_number = match.group(1)
-            ack_message = f":{dst_callsign}-{dst_ssid} ack{ack_number}"
+            ack_message = f":{dst_callsign}-{dst_ssid} :ack{ack_number}"
             self.send_packet(callsign, ssid, ack_message.encode('utf-8'))
 
         if "WHEREMAI" in message.upper():
