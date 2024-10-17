@@ -267,8 +267,15 @@ class APRSBot:
             'sunset': s['sunset'].strftime('%H:%M:%S')
         }
 
-    def handle_message(self, callsign, ssid, message):
+    def handle_message(self, callsign, ssid, message, dst_callsign=None, dst_ssid=None):
         """Handle different messages and respond accordingly."""
+
+        match = re.search(r'\{(\d+)\s*$', message)  # Match any { followed by digits at the end
+        if match:
+            ack_number = match.group(1)
+            ack_message = f":{dst_callsign}-{dst_ssid} ack{ack_number}"
+            self.send_packet(callsign, ssid, ack_message.encode('utf-8'))
+
         if "WHEREMAI" in message.upper():
             self.send_whereami(callsign, ssid)
         elif "ISS_LOCATION" in message.upper():
@@ -341,7 +348,7 @@ class APRSBot:
                     if recipient != own_call:
                         continue
                     time.sleep(3)
-                    self.handle_message(src_callsign, src_ssid, message)
+                    self.handle_message(src_callsign, src_ssid, message, dst_callsign, dst_ssid)
 
 if __name__ == "__main__":
     bot = APRSBot(src_call=CALLSIGN, src_ssid=SSID)
