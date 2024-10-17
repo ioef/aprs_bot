@@ -275,6 +275,7 @@ class APRSBot:
             ack_number = match.group(1)
             ack_message = f":{dst_callsign}-{dst_ssid} :ack{ack_number}"
             self.send_packet(callsign, ssid, ack_message.encode('utf-8'))
+            time.sleep(1)
 
         if "WHEREMAI" in message.upper():
             self.send_whereami(callsign, ssid)
