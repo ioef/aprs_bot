@@ -143,6 +143,46 @@ class APRSBot:
         except Exception as e:
             logging.error(f"Error receiving packet: {e}")
         return None
+    
+    def send_packet(self, dest_call, dest_ssid, aprs_payload):
+        """
+        Send the constructed KISS frame to the Direwolf KISS TCP interface.
+        Args:
+            dest_call (str): Destination call sign.
+            dest_ssid (int): Destination SSID.
+            aprs_payload (bytes): Payload for the APRS message.
+        """
+        digi_calls = [("WIDE1", 1), ("WIDE2", 2)]  # List of digipeater callsigns and ssids
+        kiss_frame = self.build_kiss_frame(self.src_call, self.src_ssid, dest_call, dest_ssid, digi_calls, aprs_payload)
+        if kiss_frame is None:
+            return
+
+        try:
+            self.sock.sendall(kiss_frame)
+            logging.info("Packet sent successfully.")
+        except Exception as e:
+            logging.error(f"Error sending packet: {e}")
+
+    def connect(self):
+        """Connect to Direwolf on localhost:8001."""
+        try:
+            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.sock.connect(('localhost', self.port))
+            logging.info("Connected to Direwolf on localhost:8001")
+        except Exception as e:
+            logging.error(f"Failed to connect to Direwolf: {e}")
+            self.sock = None
+
+    def receive_packet(self):
+        """Receive packets from Direwolf."""
+        try:
+            data = self.sock.recv(1024)
+            if data:
+                logging.info(f"Received packet: {data}")
+                return data
+        except Exception as e:
+            logging.error(f"Error receiving packet: {e}")
+        return None
 
     def decode_ax25_address(self, encoded_bytes):
         """
@@ -160,34 +200,42 @@ class APRSBot:
         ssid = (encoded_bytes[6] >> 1) & 0x0F  # Extract SSID (bits 1-4)
         return callsign, ssid
 
-    def extract_addresses(self, packet_bytes):
-        """
-        Extract the destination and source callsigns from the AX.25 packet.
-        Args:
-        packet_bytes (bytes): Full AX.25 frame.
-        Returns:
-        tuple: (destination, source) addresses.
-        """
-        # Next 7 bytes are the source address
-        src_addr = self.decode_ax25_address(packet_bytes[9:16])
+    def extract_addresses_and_message(self, packet_bytes):
+        packet_bytes = packet_bytes.strip(b'\xc0')  # Remove KISS framing
 
-        return src_addr
+        # Extract source address from AX.25 frame (8-15 bytes)
+        src_addr = self.decode_ax25_address(packet_bytes[8:15])  # Correct byte range for sender
+        sender_callsign, sender_ssid = src_addr
+
+        payload_start = packet_bytes.find(b':')  # Start of message payload
+        message_payload = packet_bytes[payload_start:].decode('utf-8').strip() if payload_start != -1 else ""
+
+        # Extract the receiver callsign and receiver ssid after the first colon and before the second colon
+        parts = message_payload.split(':')
+        if len(parts) > 2:
+            receiver_callsign_ssid = parts[1].strip()
+            if '-' in receiver_callsign_ssid:
+                receiver_callsign, receiver_ssid = receiver_callsign_ssid.split('-')
+                message = parts[2].strip()
+            else:
+                return sender_callsign, sender_ssid, "", "", ""
+        else:
+            return sender_callsign, sender_ssid, "", "", ""
+
+        return sender_callsign, sender_ssid, receiver_callsign, receiver_ssid, message
+
 
     def parse_packet(self, packet):
-        """Parse received APRS packet to extract sender and message."""
+        """Parse received APRS packet to extract sender, receiver, and message."""
         try:
-            callsign, ssid = self.extract_addresses(packet)
-            packet_str = packet.decode('utf-8', errors='ignore')
-            logging.info(f"Parsing packet: {packet_str}")
-            #match = re.search(r":(\w+-\d+)\s+:(\w+)", packet_str)
-            match = re.search(r":([^:]+)$", packet_str)
-            if match:
-                message = match.group(1).strip()
-                logging.info(f"Parsed message from {callsign}-{ssid}: {message}")
-                return callsign, int(ssid), message
+            # Extract source and destination addresses
+            sender_callsign, sender_ssid, receiver_callsign, receiver_ssid, message = self.extract_addresses_and_message(packet)
+            logging.info(f"Sender: {sender_callsign}-{sender_ssid} Receiver: {receiver_callsign}-{receiver_ssid} Message: {message}")
         except Exception as e:
             logging.error(f"Error parsing packet: {e}")
-        return None, None, None
+            return None, None, None, None, None
+        return sender_callsign, sender_ssid, receiver_callsign, receiver_ssid, message
+
 
     def fetch_weather(self, CITY='Thessaloniki'):
         # Fetch weather data from an online API (example: OpenWeatherMap)
@@ -238,8 +286,6 @@ class APRSBot:
             self.send_packet(callsign, ssid, f":{callsign}-{ssid} :Sunrise: {sun_times['sunrise']} Sunset: {sun_times['sunset']}".encode('utf-8'))
         elif "HELP" in message.upper():
             self.send_help(callsign, ssid)
-        elif "ack10" in message:
-            logging.info(f"Received acknowledgement from {callsign}-{ssid}")
         else:
             logging.info(f"Unknown command received from {callsign}-{ssid}: {message}")
 
@@ -265,7 +311,7 @@ class APRSBot:
     
     def send_echo(self, callsign, ssid):
         """Respond with an OK message."""
-        self.send_packet(callsign, ssid, f":{callsign}-{ssid}:OK".encode('utf-8'))
+        self.send_packet(callsign, ssid, f":{callsign}-{ssid} :OK".encode('utf-8'))
 
     def send_help(self, callsign, ssid):
         """
@@ -288,19 +334,14 @@ class APRSBot:
         while True:
             packet = self.receive_packet()
             if packet:
-                callsign, ssid, message = self.parse_packet(packet)
-                own_call = self.src_call + '-' + str(self.src_ssid)
-                check_call = callsign
-                if ssid is not None:
-                    check_call += '-'
-                    check_call += str(ssid)
-                if check_call  == own_call:
+                src_callsign, src_ssid, dst_callsign, dst_ssid, message = self.parse_packet(packet)
+                if src_callsign and message:
+                    own_call = f"{self.src_call}-{self.src_ssid}"
+                    recipient = f"{dst_callsign}-{dst_ssid}"
+                    if recipient != own_call:
                         continue
-                if callsign and message:
                     time.sleep(3)
-                    self.handle_message(callsign, ssid, message)
-            time.sleep(1)  # Pause before checking for the next packet
-
+                    self.handle_message(src_callsign, src_ssid, message)
 
 if __name__ == "__main__":
     bot = APRSBot(src_call=CALLSIGN, src_ssid=SSID)
