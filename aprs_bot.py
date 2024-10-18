@@ -143,46 +143,6 @@ class APRSBot:
         except Exception as e:
             logging.error(f"Error receiving packet: {e}")
         return None
-    
-    def send_packet(self, dest_call, dest_ssid, aprs_payload):
-        """
-        Send the constructed KISS frame to the Direwolf KISS TCP interface.
-        Args:
-            dest_call (str): Destination call sign.
-            dest_ssid (int): Destination SSID.
-            aprs_payload (bytes): Payload for the APRS message.
-        """
-        digi_calls = [("WIDE1", 1), ("WIDE2", 2)]  # List of digipeater callsigns and ssids
-        kiss_frame = self.build_kiss_frame(self.src_call, self.src_ssid, dest_call, dest_ssid, digi_calls, aprs_payload)
-        if kiss_frame is None:
-            return
-
-        try:
-            self.sock.sendall(kiss_frame)
-            logging.info("Packet sent successfully.")
-        except Exception as e:
-            logging.error(f"Error sending packet: {e}")
-
-    def connect(self):
-        """Connect to Direwolf on localhost:8001."""
-        try:
-            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.sock.connect(('localhost', self.port))
-            logging.info("Connected to Direwolf on localhost:8001")
-        except Exception as e:
-            logging.error(f"Failed to connect to Direwolf: {e}")
-            self.sock = None
-
-    def receive_packet(self):
-        """Receive packets from Direwolf."""
-        try:
-            data = self.sock.recv(1024)
-            if data:
-                logging.info(f"Received packet: {data}")
-                return data
-        except Exception as e:
-            logging.error(f"Error receiving packet: {e}")
-        return None
 
     def decode_ax25_address(self, encoded_bytes):
         """
