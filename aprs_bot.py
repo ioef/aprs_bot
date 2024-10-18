@@ -212,6 +212,23 @@ class APRSBot:
             logging.error(f"Error fetching weather data: {e}")
             return None
 
+    def fetch_iss_location(self):
+        """Fetch the current location of the ISS."""
+        url = "http://api.open-notify.org/iss-now.json"
+        try:
+            response = requests.get(url)
+            data = response.json()
+            if data['message'] == 'success':
+                position = data['iss_position']
+                latitude = position['latitude']
+                longitude = position['longitude']
+                return f"ISS location: {latitude} N, {longitude} W"
+            else:
+                return "Could not retrieve ISS location"
+        except Exception as e:
+            logging.error(f"Error fetching ISS location: {e}")
+            return "Error fetching ISS location"
+
     def get_sun_times(self, city_name):
         """
         Get sunrise and sunset times for a given city.
@@ -264,7 +281,7 @@ class APRSBot:
 
     def send_iss_location(self, callsign, ssid):
         """Respond with dummy ISS location data."""
-        iss_location = "ISS location: 47.1234 N, -122.5678 W"
+        iss_location = self.fetch_iss_location()
         self.send_packet(callsign, ssid, f":{callsign}-{ssid} ISS Location: {iss_location}".encode('utf-8'))
 
     def send_weather_skg(self, callsign, ssid):
