@@ -222,12 +222,27 @@ class APRSBot:
                 position = data['iss_position']
                 latitude = position['latitude']
                 longitude = position['longitude']
-                return f"ISS location: {latitude} N, {longitude} W"
+                return f"{latitude} N, {longitude} W"
             else:
                 return "Could not retrieve ISS location"
         except Exception as e:
             logging.error(f"Error fetching ISS location: {e}")
             return "Error fetching ISS location"
+
+    def fetch_astros_in_space(self):
+        """Fetch the current astronauts in space."""
+        url = "http://api.open-notify.org/astros.json"
+        try:
+            response = requests.get(url)
+            data = response.json()
+            if data['message'] == 'success':
+                astros = [astro['name'] for astro in data['people']]
+                return ', '.join(astros)
+            else:
+                return "Could not retrieve astronaut data"
+        except Exception as e:
+            logging.error(f"Error fetching astronaut data: {e}")
+            return "Error fetching astronaut data"
 
     def get_sun_times(self, city_name):
         """
@@ -258,6 +273,8 @@ class APRSBot:
             self.send_whereami(callsign, ssid)
         elif "ISS_LOCATION" in message.upper():
             self.send_iss_location(callsign, ssid)
+        elif "ISS_ASTROS" in message.upper():
+            self.send_astros(callsign, ssid)
         elif "SKGWEATHER" in message.upper():
             self.send_weather_skg(callsign, ssid)
         elif "WEATHER?" in message.upper():
@@ -282,7 +299,12 @@ class APRSBot:
     def send_iss_location(self, callsign, ssid):
         """Respond with dummy ISS location data."""
         iss_location = self.fetch_iss_location()
-        self.send_packet(callsign, ssid, f":{callsign}-{ssid} ISS Location: {iss_location}".encode('utf-8'))
+        self.send_packet(callsign, ssid, f":{callsign}-{ssid} :ISS Location: {iss_location}".encode('utf-8'))
+        
+    def send_astros(self, callsign, ssid):
+        """Respond with dummy astronaut data."""
+        astros = self.fetch_astros_in_space()
+        self.send_packet(callsign, ssid, f":{callsign}-{ssid} :{astros}".encode('utf-8'))
 
     def send_weather_skg(self, callsign, ssid):
         """Respond with dummy weather data for Thessaloniki."""
