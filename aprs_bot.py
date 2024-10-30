@@ -265,7 +265,11 @@ class APRSBot:
         match = re.search(r'\{(\d+)\s*$', message)  # Match any { followed by digits at the end
         if match:
             ack_number = match.group(1)
-            ack_message = f":{dst_callsign}-{dst_ssid} :ack{ack_number}"
+            print(callsign)
+            print(ssid)
+            print(dst_callsign)
+            print(dst_ssid)
+            ack_message = f":{callsign}-{ssid} :ack{ack_number}"
             self.send_packet(callsign, ssid, ack_message.encode('utf-8'))
             time.sleep(1)
 
@@ -353,3 +357,4 @@ class APRSBot:
 if __name__ == "__main__":
     bot = APRSBot(src_call=CALLSIGN, src_ssid=SSID)
     bot.run()
+
