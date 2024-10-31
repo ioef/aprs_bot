@@ -265,10 +265,6 @@ class APRSBot:
         match = re.search(r'\{(\d+)\s*$', message)  # Match any { followed by digits at the end
         if match:
             ack_number = match.group(1)
-            print(callsign)
-            print(ssid)
-            print(dst_callsign)
-            print(dst_ssid)
             ack_message = f":{callsign}-{ssid} :ack{ack_number}"
             self.send_packet(callsign, ssid, ack_message.encode('utf-8'))
             time.sleep(1)
