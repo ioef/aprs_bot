@@ -3,6 +3,7 @@ import logging
 import time
 import re
 import requests
+import queue
 from datetime import datetime
 from constants import KISS_FEND, KISS_PORT, KISS_DATA_FRAME, API_KEY, CALLSIGN, SSID
 from astral import LocationInfo
@@ -17,6 +18,7 @@ class APRSBot:
         self.src_ssid = SSID
         self.port = port
         self.sock = None
+        self.message_queue = queue.Queue()
 
     def create_ax25_address(self, call_sign, ssid, last=False):
         """
@@ -134,15 +136,27 @@ class APRSBot:
             self.sock = None
 
     def receive_packet(self):
-        """Receive packets from Direwolf."""
+        """Receive packets from Direwolf and enqueue them."""
         try:
             data = self.sock.recv(1024)
             if data:
                 logging.info(f"Received packet: {data}")
-                return data
+                self.message_queue.put(data)  # Enqueue the received data
         except Exception as e:
             logging.error(f"Error receiving packet: {e}")
-        return None
+
+    def process_message_queue(self):
+        """Process messages from the queue."""
+        while not self.message_queue.empty():
+            packet = self.message_queue.get()
+            src_callsign, src_ssid, dst_callsign, dst_ssid, message = self.parse_packet(packet)
+            if src_callsign and message:
+                own_call = f"{self.src_call}-{self.src_ssid}"
+                recipient = f"{dst_callsign}-{dst_ssid}"
+                if recipient != own_call or f"{src_callsign}-{src_ssid}" == own_call:
+                    continue
+                time.sleep(1)
+                self.handle_message(src_callsign, src_ssid, message, dst_callsign, dst_ssid)
 
     def decode_ax25_address(self, encoded_bytes):
         """
@@ -290,6 +304,7 @@ class APRSBot:
             self.send_help(callsign, ssid)
         else:
             logging.info(f"Unknown command received from {callsign}-{ssid}: {message}")
+            self.send_unknown(callsign, ssid)
 
     def send_whereami(self, callsign, ssid):
         """Respond with dummy location data."""
@@ -331,6 +346,10 @@ class APRSBot:
         logging.info(f"Sending help to {callsign}-{ssid}")
         self.send_packet(callsign, ssid, f":{callsign}-{ssid} :Cmds WHEREAMI, ISS_LOC, SKGWEATHER, ECHO <msg>, HELP".encode('utf-8'))
 
+    def send_unknown(self, callsign, ssid):
+        """Respond with an unknown command message."""
+        self.send_packet(callsign, ssid, f":{callsign}-{ssid} :Unknown command. Try HELP".encode('utf-8'))
+
     def run(self):
         """Connect and start listening for packets."""
         self.connect()
@@ -339,18 +358,9 @@ class APRSBot:
             return
 
         while True:
-            packet = self.receive_packet()
-            if packet:
-                src_callsign, src_ssid, dst_callsign, dst_ssid, message = self.parse_packet(packet)
-                if src_callsign and message:
-                    own_call = f"{self.src_call}-{self.src_ssid}"
-                    recipient = f"{dst_callsign}-{dst_ssid}"
-                    if recipient != own_call or f"{src_callsign}-{src_ssid}" == own_call:
-                        continue
-                    time.sleep(1)
-                    self.handle_message(src_callsign, src_ssid, message, dst_callsign, dst_ssid)
+            self.receive_packet()
+            self.process_message_queue()
 
 if __name__ == "__main__":
     bot = APRSBot(src_call=CALLSIGN, src_ssid=SSID)
     bot.run()
-
