@@ -344,7 +344,7 @@ class APRSBot:
         """
         help_message = "Cmds: SUNRISE, ISS_LOCATION, SKGWEATHER, WEATHER?CITY, HELP"
         logging.info(f"Sending help to {callsign}-{ssid}")
-        self.send_packet(callsign, ssid, f":{callsign}-{ssid} :Cmds WHEREAMI, ISS_LOC, SKGWEATHER, ECHO <msg>, HELP".encode('utf-8'))
+        self.send_packet(callsign, ssid, f":{callsign}-{ssid} :{help_message}".encode('utf-8'))
 
     def send_unknown(self, callsign, ssid):
         """Respond with an unknown command message."""
