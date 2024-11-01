@@ -347,7 +347,7 @@ class APRSBot:
                     recipient = f"{dst_callsign}-{dst_ssid}"
                     if recipient != own_call or f"{src_callsign}-{src_ssid}" == own_call:
                         continue
-                    time.sleep(3)
+                    time.sleep(1)
                     self.handle_message(src_callsign, src_ssid, message, dst_callsign, dst_ssid)
 
 if __name__ == "__main__":
