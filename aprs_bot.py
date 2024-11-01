@@ -298,7 +298,7 @@ class APRSBot:
         elif "ECHO" in message.upper():
             self.send_echo(callsign, ssid)
         elif "REPEATERS" in message.upper():
-            repeaters = "SV2A 145.750 -0.6, SV2D 145.675 -0.6 88.5Hz, SV2O 145.600 -0.6 94.8Hz"
+            repeaters = "SV2A 145.750,SV2D 145.675 88.5Hz,SV2O 145.600 94.8Hz"
             self.send_packet(callsign, ssid, f":{callsign}-{ssid} :{repeaters}".encode('utf-8'))
         elif "SUNRISE" in message.upper():
             sun_times = self.get_sun_times("Thessaloniki")
