@@ -300,6 +300,9 @@ class APRSBot:
         elif "SUNRISE" in message.upper():
             sun_times = self.get_sun_times("Thessaloniki")
             self.send_packet(callsign, ssid, f":{callsign}-{ssid} :Sunrise: {sun_times['sunrise']} Sunset: {sun_times['sunset']}".encode('utf-8'))
+        elif "BEACON" in message.upper():
+            message = "QSL. Signal received loud and clear! 73!"
+            self.send_beacon(callsign, ssid, message)
         elif "HELP" in message.upper():
             self.send_help(callsign, ssid)
         else:
@@ -334,6 +337,10 @@ class APRSBot:
     def send_echo(self, callsign, ssid):
         """Respond with an OK message."""
         self.send_packet(callsign, ssid, f":{callsign}-{ssid} :OK".encode('utf-8'))
+
+    def send_beacon(self, callsign, ssid, message):
+        """Send a beacon message."""
+        self.send_packet(callsign, ssid, f":{callsign}-{ssid} :{message}".encode('utf-8'))
 
     def send_help(self, callsign, ssid):
         """
