@@ -342,7 +342,7 @@ class APRSBot:
         Args:
         sender (str): The call sign of the message sender.
         """
-        help_message = "Cmds: WHEREAMI, ISS_LOC, SKGWEATHER, ECHO <msg>, HELP"
+        help_message = "Cmds: SUNRISE, ISS_LOCATION, SKGWEATHER, WEATHER?CITY, HELP"
         logging.info(f"Sending help to {callsign}-{ssid}")
         self.send_packet(callsign, ssid, f":{callsign}-{ssid} :Cmds WHEREAMI, ISS_LOC, SKGWEATHER, ECHO <msg>, HELP".encode('utf-8'))
 
