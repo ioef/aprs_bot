@@ -8,6 +8,8 @@ from datetime import datetime
 from constants import KISS_FEND, KISS_PORT, KISS_DATA_FRAME, API_KEY, CALLSIGN, SSID
 from astral import LocationInfo
 from astral.sun import sun
+import tips_of_the_day
+import random
 
 # Configure logging
 logging.basicConfig(filename='aprs_bot.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -153,9 +155,8 @@ class APRSBot:
             if src_callsign and message:
                 own_call = f"{self.src_call}-{self.src_ssid}"
                 recipient = f"{dst_callsign}-{dst_ssid}"
-                if recipient != own_call or f"{src_callsign}-{src_ssid}" == own_call:
+                if recipient != own_call:
                     continue
-                time.sleep(1)
                 self.handle_message(src_callsign, src_ssid, message, dst_callsign, dst_ssid)
 
     def decode_ax25_address(self, encoded_bytes):
@@ -295,8 +296,8 @@ class APRSBot:
             city = message.split('?')[1].split()[0]
             city = re.sub(r"\{\d+", "", city)
             self.send_weather_generic(callsign, ssid, city)
-        elif "ECHO" in message.upper():
-            self.send_echo(callsign, ssid)
+        elif "TIP" in message.upper():
+            self.send_tips(callsign, ssid)
         elif "REPEATERS" in message.upper():
             repeaters = "SV2A 145.750,SV2D 145.675 88.5Hz,SV2O 145.600 94.8Hz"
             self.send_packet(callsign, ssid, f":{callsign}-{ssid} :{repeaters}".encode('utf-8'))
@@ -337,9 +338,14 @@ class APRSBot:
         weather_info = self.fetch_weather(city)
         self.send_packet(callsign, ssid, f":{callsign}-{ssid} :{weather_info}".encode('utf-8'))
     
-    def send_echo(self, callsign, ssid):
-        """Respond with an OK message."""
-        self.send_packet(callsign, ssid, f":{callsign}-{ssid} :OK".encode('utf-8'))
+    def send_tips(self, callsign, ssid):
+        """Respond with a tip."""
+        #tips of the day is a dictionary with tips.
+        #randomize and select a tip to send
+        #get a number from 0 to 227 and select the tip with that number
+        tip_index = random.randint(0, len(tips_of_the_day.tips_of_the_day) - 1)
+        tip = tips_of_the_day.tips_of_the_day[tip_index]
+        self.send_packet(callsign, ssid, f":{callsign}-{ssid} :{tip}".encode('utf-8'))
 
     def send_beacon(self, callsign, ssid, message):
         """Send a beacon message."""
@@ -352,7 +358,7 @@ class APRSBot:
         Args:
         sender (str): The call sign of the message sender.
         """
-        help_message = "Cmds: SUNRISE, ISS_LOCATION, SKGWEATHER, WEATHER?CITY, HELP"
+        help_message = "Cmds: SUNRISE, ISS_LOCATION, SKGWEATHER, WEATHER?CITY, TIP, REPEATERS, BEACON"
         logging.info(f"Sending help to {callsign}-{ssid}")
         self.send_packet(callsign, ssid, f":{callsign}-{ssid} :{help_message}".encode('utf-8'))
 
