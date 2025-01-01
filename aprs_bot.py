@@ -43,7 +43,7 @@ class APRSBot:
             address.append(byte << 1)
         address.append(ssid_byte)
 
-        logging.debug(f'Created AX.25 address: {call_sign} with SSID {ssid} => {address.hex()}')
+        #logging.debug(f'Created AX.25 address: {call_sign} with SSID {ssid} => {address.hex()}')
         return address
 
     def validate_ax25_frame(self, kiss_frame):
@@ -221,7 +221,7 @@ class APRSBot:
             if weather_data.get("cod") != 200:
                 logging.error(f"Failed to fetch weather data: {weather_data.get('message')}")
                 return None
-            weather_info = f"Weather in {CITY}: {weather_data['main']['temp']}°C, {weather_data['weather'][0]['description']}"
+            weather_info = f"Weather in {CITY}: {weather_data['main']['temp']} deg C, {weather_data['weather'][0]['description']}"
             return weather_info
         except Exception as e:
             logging.error(f"Error fetching weather data: {e}")
@@ -280,10 +280,9 @@ class APRSBot:
         match = re.search(r'\{(\d+)\s*$', message)  # Match any { followed by digits at the end
         if match:
             ack_number = match.group(1)
-            ack_message = f":{callsign}-{ssid} :ack{ack_number}"
+            ack_message = f":{callsign}-{ssid}:ack{ack_number}"
             self.send_packet(callsign, ssid, ack_message.encode('utf-8'))
-            time.sleep(1)
-
+            time.sleep(1.2)
         if "WHEREMAI" in message.upper():
             self.send_whereami(callsign, ssid)
         elif "ISS_LOCATION" in message.upper():
@@ -300,10 +299,10 @@ class APRSBot:
             self.send_tips(callsign, ssid)
         elif "REPEATERS" in message.upper():
             repeaters = "SV2A 145.750,SV2D 145.675 88.5Hz,SV2O 145.600 94.8Hz"
-            self.send_packet(callsign, ssid, f":{callsign}-{ssid} :{repeaters}".encode('utf-8'))
+            self.send_packet(callsign, ssid, f":{callsign}-{ssid}:{repeaters}".encode('utf-8'))
         elif "SUNRISE" in message.upper():
             sun_times = self.get_sun_times("Thessaloniki")
-            self.send_packet(callsign, ssid, f":{callsign}-{ssid} :Sunrise: {sun_times['sunrise']} Sunset: {sun_times['sunset']}".encode('utf-8'))
+            self.send_packet(callsign, ssid, f":{callsign}-{ssid}:Sunrise: {sun_times['sunrise']} Sunset: {sun_times['sunset']}".encode('utf-8'))
         elif "BEACON" in message.upper():
             message = "QSL. Signal received loud and clear! 73!"
             self.send_beacon(callsign, ssid, message)
@@ -316,27 +315,27 @@ class APRSBot:
     def send_whereami(self, callsign, ssid):
         """Respond with dummy location data."""
         location = "Your location: 40.7128 N, 74.0060 W"
-        self.send_packet(callsign, ssid, f":{callsign}-{ssid} {location} 73!".encode('utf-8'))
+        self.send_packet(callsign, ssid, f":{callsign}-{ssid}:{location} 73!".encode('utf-8'))
 
     def send_iss_location(self, callsign, ssid):
         """Respond with dummy ISS location data."""
         iss_location = self.fetch_iss_location()
-        self.send_packet(callsign, ssid, f":{callsign}-{ssid} :ISS Location: {iss_location}".encode('utf-8'))
+        self.send_packet(callsign, ssid, f":{callsign}-{ssid}:ISS Location {iss_location}".encode('utf-8'))
         
     def send_astros(self, callsign, ssid):
         """Respond with dummy astronaut data."""
         astros = self.fetch_astros_in_space()
-        self.send_packet(callsign, ssid, f":{callsign}-{ssid} :{astros}".encode('utf-8'))
+        self.send_packet(callsign, ssid, f":{callsign}-{ssid}:{astros}".encode('utf-8'))
 
     def send_weather_skg(self, callsign, ssid):
         """Respond with dummy weather data for Thessaloniki."""
         weather_info = self.fetch_weather()
-        self.send_packet(callsign, ssid, f":{callsign}-{ssid} :{weather_info}".encode('utf-8'))
+        self.send_packet(callsign, ssid, f":{callsign}-{ssid}:{weather_info}".encode('utf-8'))
 
     def send_weather_generic(self, callsign, ssid, city):
         """Respond with dummy weather data for Thessaloniki."""
         weather_info = self.fetch_weather(city)
-        self.send_packet(callsign, ssid, f":{callsign}-{ssid} :{weather_info}".encode('utf-8'))
+        self.send_packet(callsign, ssid, f":{callsign}-{ssid}:{weather_info}".encode('utf-8'))
     
     def send_tips(self, callsign, ssid):
         """Respond with a tip."""
@@ -345,11 +344,11 @@ class APRSBot:
         #get a number from 0 to 227 and select the tip with that number
         tip_index = random.randint(0, len(tips_of_the_day.tips_of_the_day) - 1)
         tip = tips_of_the_day.tips_of_the_day[tip_index]
-        self.send_packet(callsign, ssid, f":{callsign}-{ssid} :{tip}".encode('utf-8'))
+        self.send_packet(callsign, ssid, f":{callsign}-{ssid}:{tip}".encode('utf-8'))
 
     def send_beacon(self, callsign, ssid, message):
         """Send a beacon message."""
-        self.send_packet(callsign, ssid, f":{callsign}-{ssid} :{message}".encode('utf-8'))
+        self.send_packet(callsign, ssid, f":{callsign}-{ssid}:{message}".encode('utf-8'))
 
     def send_help(self, callsign, ssid):
         """
@@ -360,11 +359,11 @@ class APRSBot:
         """
         help_message = "Cmds: SUNRISE, ISS_LOCATION, SKGWEATHER, WEATHER?CITY, TIP, REPEATERS, BEACON"
         logging.info(f"Sending help to {callsign}-{ssid}")
-        self.send_packet(callsign, ssid, f":{callsign}-{ssid} :{help_message}".encode('utf-8'))
+        self.send_packet(callsign, ssid, f":{callsign}-{ssid}:{help_message}".encode('utf-8'))
 
     def send_unknown(self, callsign, ssid):
         """Respond with an unknown command message."""
-        self.send_packet(callsign, ssid, f":{callsign}-{ssid} :Unknown command. Try HELP".encode('utf-8'))
+        self.send_packet(callsign, ssid, f":{callsign}-{ssid}:Unknown command. Try HELP".encode('utf-8'))
 
     def run(self):
         """Connect and start listening for packets."""
