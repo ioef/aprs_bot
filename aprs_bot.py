@@ -177,6 +177,7 @@ class APRSBot:
 
     def extract_addresses_and_message(self, packet_bytes):
         packet_bytes = packet_bytes.strip(b'\xc0')  # Remove KISS framing
+        packet_bytes = packet_bytes.replace(b'\x0d', b'')  # Remove carriage return
 
         # Extract source address from AX.25 frame (8-15 bytes)
         src_addr = self.decode_ax25_address(packet_bytes[8:15])  # Correct byte range for sender
