@@ -118,6 +118,7 @@ class APRSBot:
         """
         digi_calls = [("WIDE1", 1), ("WIDE2", 2)]  # List of digipeater callsigns and ssids
         kiss_frame = self.build_kiss_frame(self.src_call, self.src_ssid, dest_call, dest_ssid, digi_calls, aprs_payload)
+        logging.info(kiss_frame)
         if kiss_frame is None:
             return
 
@@ -177,7 +178,7 @@ class APRSBot:
 
     def extract_addresses_and_message(self, packet_bytes):
         packet_bytes = packet_bytes.strip(b'\xc0')  # Remove KISS framing
-        packet_bytes = packet_bytes.replace(b'\x0d', b'')  # Remove carriage return
+        packet_bytes = packet_bytes.replace(b'\r', b'')  # Remove carriage return
 
         # Extract source address from AX.25 frame (8-15 bytes)
         src_addr = self.decode_ax25_address(packet_bytes[8:15])  # Correct byte range for sender
